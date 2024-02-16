@@ -3,8 +3,9 @@ import threading
 import time
 import logging
 import datetime
-
+import json 
 from decorators import log_function_call
+import fireBaseUtils
 
 HOST = '127.0.0.1'
 PORT = 8080
@@ -13,10 +14,13 @@ MAX_CONNECTIONS = 2
 waiting_players = {}
 players = []
 game_rooms = {}
+pgn_list = []
+
 
 def delete_game_room(username):
+    fireBaseUtils.delete_document_by_name(username)
     if username in game_rooms:
-        for sock, _ in game_rooms[username]:
+        for sock, _, _ in game_rooms[username]:
             try:
                 sock.shutdown(socket.SHUT_RDWR)
                 sock.close()
@@ -24,10 +28,13 @@ def delete_game_room(username):
                 print(f"Error closing socket for {username}: {e}")
         del game_rooms[username]
 
+
 def notify_opponent_of_disconnection(disconnected_username):
     # Find the opponent in the game room
     print(game_rooms.items)
-    for room_username, room_players in game_rooms.items():
+    print(game_rooms)
+    print(disconnected_username)
+    for room_username, room_players, _ in game_rooms.values():
         for _, player_username in room_players:
             if player_username != disconnected_username:
                 opponent_socket, opponent_username = room_players[0] if room_players[1][1] == disconnected_username else room_players[1]
@@ -35,7 +42,11 @@ def notify_opponent_of_disconnection(disconnected_username):
                 # Notify the opponent of the disconnection
                 message = f"You win! {disconnected_username} has disconnected. "
                 opponent_socket.sendall(message.encode('utf-8'))
-                break
+                break  # Break out of inner loop
+        else:
+            continue  # Continue to the next iteration of the outer loop
+        break  # Break out of the outer loop
+
 
 @log_function_call
 def match_players():
@@ -53,31 +64,26 @@ def match_players():
                     player1_info = waiting_players[player1]
                     player2_info = waiting_players[player2]
 
-                
                     # Check if players are still connected before creating a game room
                     if player1_info[0].fileno() != -1 and player2_info[0].fileno() != -1:
                         # Extract usernames from players
                         username1 = player1_info[1]
                         username2 = player2_info[1]
 
-                        print(player1_info)
-                        print(player2_info)
-                        # print("username1:" + username1)
-                        # print("username2:" + username2)
-                        
-                        # print("player1 : " + player1_info[2])
-                        # print("player2 : " + player2_info[2])
-                        player1_opponent = player1_info[2].replace("\n",'')
-                        player2_opponent = player2_info[2].replace("\n",'')
-                        print(player1_opponent)
-                        print(player2_opponent)
-                        
+                        player1_opponent = player1_info[2].replace("\n", '')
+                        player2_opponent = player2_info[2].replace("\n", '')
+
                         # Ensure that players requested each other as opponents
                         if username1 == player2_opponent and username2 == player1_opponent:
-                            print("*"*20)
-                            # Update game_rooms with usernames
-                            game_rooms[username1] = [(player1_info[0], username1), (player2_info[0], username2)]
-                            game_rooms[username2] = [(player1_info[0], username1), (player2_info[0], username2)]
+                            # Update game_rooms with usernames and an empty list for moves
+                            game_rooms[username1] = {
+                                'players': [(player1_info[0], username1), (player2_info[0], username2)],
+                                'moves': []
+                            }
+                            game_rooms[username2] = {
+                                'players': [(player1_info[0], username1), (player2_info[0], username2)],
+                                'moves': []
+                            }
 
                             print(f"Game room created for {username1} and {username2}")
 
@@ -93,8 +99,8 @@ def match_players():
                             logging.info(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Matched players: {username1}, {username2}")
 
                             # Start a new thread to handle the players in the same room
-                            threading.Thread(target=handle_client, args=(player1_info[0], username1)).start()
-                            threading.Thread(target=handle_client, args=(player2_info[0], username2)).start()
+                            threading.Thread(target=handle_client, args=(player1_info[0], username1, username2)).start()
+                            threading.Thread(target=handle_client, args=(player2_info[0], username2, username1)).start()
 
                             # Remove players from the waiting list
                             del waiting_players[player1]
@@ -106,28 +112,33 @@ def match_players():
             # If no match is found, wait for more players to join
             if not matched:
                 time.sleep(1)
-
-def handle_client(client_socket, username):
+                
+                
+def handle_client(client_socket, username, opponent_username):
     try:
         while True:
             data = client_socket.recv(1024).decode('utf-8')
+            print(data)
             if not data:
                 # Empty data indicates client disconnected
                 break
-
-            print(data)
-
-            if data == "gameOver":
+            if "move:" in data:
+                # Handle move if needed
+                move = data.split(":")[1].strip()
+                game_rooms[username]['moves'].append(move)
+                game_rooms[opponent_username]['moves'].append(move)
+            if "gameOver" in data:
                 # Notify opponent before deleting the game room
                 notify_opponent_of_disconnection(username)
                 delete_game_room(username)
                 break
 
+            print("Game rooms :" + str(game_rooms[username]))
             if username in game_rooms:
-                other_players = [sock for sock, user in game_rooms[username] if user != username]
-                if other_players:
-                    other_player_socket = other_players[0]
-                    other_player_socket.sendall(data.encode('utf-8'))
+                players_and_moves = game_rooms[username]['players']
+                for player_socket, user in players_and_moves:
+                    if user != username:
+                        player_socket.sendall(data.encode('utf-8'))
 
     except Exception as e:
         print(f"Error handling client {username}: {e}")
@@ -136,9 +147,16 @@ def handle_client(client_socket, username):
         if username in game_rooms:
             client_socket.close()
         else:
-            # If the game room is already deleted, notify opponent and close the client socket
+            # notify opponent and close the client socket
             notify_opponent_of_disconnection(username)
             client_socket.close()
+
+
+def handle_move(username, move):
+    # Append the move to the list of moves for the game room
+    if username in game_rooms:
+        game_rooms[username][-1].append(move)
+        print("Moves : " + game_rooms[username][-1])
 
 def check_socket_connections():
     while True:
@@ -153,6 +171,7 @@ def check_socket_connections():
                 delete_game_room(username)
         time.sleep(5)
 
+
 def accept_connections():
     try:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -165,22 +184,21 @@ def accept_connections():
         threading.Thread(target=match_players).start()
 
         # Start the socket check thread
-        threading.Thread(target=check_socket_connections).start()
+        # threading.Thread(target=check_socket_connections).start()
 
         while True:
             client_socket, addr = server_socket.accept()
             print(f"Connection accepted from {addr}")
 
-            # Receive the username and opponent from the client
+            # Receive the message from the client
             message = client_socket.recv(1024).decode('utf-8')
-            username, opponent = message.split('vs')
-            print("username :"  + username)
-            print("opponent :"  + opponent)
-            
-            # Add both players to the waiting list
-            waiting_players[username] = (client_socket, username, opponent)
+            if message.startswith("spectator:"):
+                # Handle the case when a spectator joins
+                handle_spectator_join(message, client_socket, addr)
+            else:
+                # Handle the case when a regular player joins
+                handle_player_join(message, client_socket, addr)
 
-            players.append((username, (client_socket, addr)))
     except Exception as e:
         print(f"Error in the server: {e}")
 
@@ -191,5 +209,52 @@ def accept_connections():
         for username in list(game_rooms.keys()):
             delete_game_room(username)
 
+
+def handle_spectator_join(message, client_socket, addr):
+    # Split the message to extract relevant information
+    _, spectator_username, room_players = message.split(":")
+    player1, player2 = room_players.split("VS")
+
+    # Add the spectator to the game room of player1 and player2
+    add_spectator_to_game_room(player1, client_socket, spectator_username)
+    add_spectator_to_game_room(player2, client_socket, spectator_username)
+
+    # Get the moves list from either player1 or player2 (assuming they have the same moves list)
+    moves_list = game_rooms[player1]['moves']
+
+    # Send the moves list to the spectator
+    send_moves_to_spectator(client_socket, moves_list)
+
+    # Add the spectator to the players list for socket checking
+    players.append((spectator_username, (client_socket, addr)))
+    
+    
+def send_moves_to_spectator(spectator_socket, moves_list):
+    # for move in moves_list:
+        # spectator_socket.sendall(f"move:{move}\n".encode('utf-8'))
+    move_list = json.dumps(moves_list)
+    spectator_socket.sendall(f"move_list:{move_list}".encode('utf-8'))
+
+def add_spectator_to_game_room(player_username, spectator_socket, spectator_username):
+    if player_username in game_rooms:
+        # Add the spectator's socket to the game room of the player
+        game_rooms[player_username]['players'].append((spectator_socket, spectator_username))
+        print(f"Spectator {spectator_username} joined the game room of {player_username}")
+    else:
+        print(f"Error: Player {player_username} not found.")
+        
+        
+def handle_player_join(message, client_socket, addr):
+    # Extract the username and opponent from the message
+    username, opponent = message.split('vs')
+    print("username :" + username)
+    print("opponent :" + opponent)
+
+    # Add both players to the waiting list
+    waiting_players[username] = (client_socket, username, opponent)
+
+    players.append((username, (client_socket, addr)))
+    
+    
 if __name__ == '__main__':
     accept_connections()
