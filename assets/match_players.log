@@ -1,0 +1,21 @@
+INFO:root:[2024-02-25 10:43:32] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-02-25 10:43:54] Matched players: yoavB, liam
+INFO:root:[2024-03-22 16:21:54] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-03-22 16:22:25] Matched players: liam, yoavB
+INFO:root:[2024-03-22 16:27:52] Matched players: yoavB, liam
+INFO:root:[2024-03-22 16:46:25] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-03-22 16:47:05] Matched players: liam, yoavB
+INFO:root:[2024-03-22 16:48:04] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-03-22 16:49:20] Matched players: yoavB, dan
+INFO:root:[2024-03-22 16:54:58] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-03-22 16:56:21] Matched players: yoavB, liam
+INFO:root:[2024-04-14 13:13:09] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-04-14 13:13:11] Matched players: dan, liam
+INFO:root:[2024-04-14 13:50:02] Matched players: liam, dan
+INFO:root:[2024-05-02 18:03:54] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-05-07 10:30:26] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-05-07 10:30:38] Matched players: liam, dan
+INFO:root:[2024-05-07 10:34:19] Matched players: liam, dan
+INFO:root:[2024-05-07 10:38:58] Matched players: liam, dan
+INFO:root:[2024-05-14 00:30:51] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-05-14 00:34:37] Matched players: liam, dan

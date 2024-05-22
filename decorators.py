@@ -3,7 +3,7 @@ import logging
 import datetime
 
 # Configure logging
-logging.basicConfig(filename='match_players.log', level=logging.INFO)
+logging.basicConfig(filename='assets/match_players.log', level=logging.INFO)
 
 def log_function_call(func):
     @functools.wraps(func)
@@ -14,9 +14,6 @@ def log_function_call(func):
 
         # Call the original function
         result = func(*args, **kwargs)
-
-        # Log additional information if needed
-        logging.info(f"[{timestamp}] Function {func.__name__} completed with result: {result}")
 
         return result
 
