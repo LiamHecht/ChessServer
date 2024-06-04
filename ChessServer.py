@@ -43,7 +43,7 @@ def delete_game_room(username):
         
     # Get opponent's username
     opponent_username = game_rooms[username]['players'][1][1]
-    
+    #test
     # Delete the game room entry
     del game_rooms[username]
     del game_rooms[opponent_username]

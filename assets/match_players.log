@@ -19,3 +19,9 @@ INFO:root:[2024-05-07 10:34:19] Matched players: liam, dan
 INFO:root:[2024-05-07 10:38:58] Matched players: liam, dan
 INFO:root:[2024-05-14 00:30:51] Function match_players called with args: (), kwargs: {}
 INFO:root:[2024-05-14 00:34:37] Matched players: liam, dan
+INFO:root:[2024-05-23 16:43:46] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-05-23 16:45:20] Matched players: dan, liam
+INFO:root:[2024-05-23 16:45:40] Function match_players called with args: (), kwargs: {}
+INFO:root:[2024-05-23 17:17:04] Matched players: liam, dan
+INFO:root:[2024-05-23 17:19:19] Matched players: dan, liam
+INFO:root:[2024-05-23 17:38:20] Matched players: liam, dan
