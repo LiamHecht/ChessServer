@@ -202,7 +202,7 @@ def accept_connections():
         threading.Thread(target=match_players).start()
 
         # Start the socket check thread
-        threading.Thread(target=check_socket_connections).start()
+        # threading.Thread(target=check_socket_connections).start()
 
         while True:
             client_socket, addr = server_socket.accept()
