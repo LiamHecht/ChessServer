@@ -36,7 +36,9 @@ pgn_list = []
 def delete_game_room(username):
     if not game_rooms[username]:
         return
+    opponent_username = game_rooms[username]['players'][1][1]
     fireBaseUtils.delete_document_by_name(username)
+    fireBaseUtils.delete_document_by_name(opponent_username)
     # Close all sockets for the game room
     for player_socket, _ in game_rooms[username]['players']:
         player_socket.close()
