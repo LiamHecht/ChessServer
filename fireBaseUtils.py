@@ -4,7 +4,7 @@ from firebase_admin import db
 
 cred = credentials.Certificate("assets/serviceAccountKey.json")
 firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://chess-6d839-default-rtdb.europe-west1.firebasedatabase.app/'
+    'databaseURL': ''
 })
 
 def check_username_in_documents(username):
